@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 if "%~1"=="" (
-    echo Usage: spring-audit.bat ^<folder^>
+    echo Usage: spring-audit ^<folder^>
     exit /b 3
 )
 
@@ -12,7 +12,6 @@ if not exist "%~1" (
 )
 
 set "ROOT=%~f1"
-set "ESC=�"
 set "TOTAL=0"
 set "CRITICAL=0"
 set "HIGH=0"
@@ -32,57 +31,57 @@ echo.
 
 >"%TMPFILE%" echo.
 
-call :SCAN "SQL Injection" "Critical" "SQLI-001" "MyBatis ${} interpolation (use #{} instead)" "*.xml" "\$\{"
-call :SCAN "SQL Injection" "High"     "SQLI-002" "JPA createQuery() with string concatenation" "*.java" "createQuery.*(\"\|').*+"
-call :SCAN "SQL Injection" "High"     "SQLI-003" "JPA createNativeQuery() with string concatenation" "*.java" "createNativeQuery.*(\"\|').*+"
-call :SCAN "SQL Injection" "Critical" "SQLI-004" "JDBC Statement used instead of PreparedStatement" "*.java" "createStatement"
-call :SCAN "SQL Injection" "High"     "SQLI-005" "JDBC execute with string concatenation" "*.java" "\.execute.*(\"\|').*+\^|\.executeQuery.*(\"\|').*+\^|\.executeUpdate.*(\"\|').*+"
-call :SCAN "SQL Injection" "High"     "SQLI-006" "Spring @Query with string concatenation" "*.java" "@Query.*(\"\|').*+"
-call :SCAN "SQL Injection" "High"     "SQLI-007" "SQL built via StringBuilder.append()" "*.java" "StringBuilder.*append.*SELECT\^|StringBuilder.*append.*INSERT\^|StringBuilder.*append.*UPDATE\^|StringBuilder.*append.*DELETE\^|StringBuilder.*append.*WHERE"
-call :SCAN "SQL Injection" "High"     "SQLI-008" "SQL built via String.format()" "*.java" "String\.format.*SELECT\^|String\.format.*INSERT\^|String\.format.*UPDATE\^|String\.format.*DELETE\^|String\.format.*WHERE"
-call :SCAN "SQL Injection" "Critical" "SQLI-009" "SpEL Expression Parser" "*.java" "SpelExpressionParser\|\.parseExpression("
-call :SCAN "SQL Injection" "Medium"   "SQLI-010" "Dynamic ORDER BY" "*.java" "ORDER.*BY.*+\^|ORDER.*BY.*\$"
+call :SCAN "SQL Injection" "Critical" "SQLI-001" "MyBatis dollar-brace" "*.xml" "$\{"
+call :SCAN "SQL Injection" "High" "SQLI-002" "JPA createQuery with plus" "*.java" "createQuery.*+"
+call :SCAN "SQL Injection" "High" "SQLI-003" "JPA createNativeQuery with plus" "*.java" "createNativeQuery.*+"
+call :SCAN "SQL Injection" "Critical" "SQLI-004" "JDBC Statement" "*.java" "createStatement"
+call :SCAN "SQL Injection" "High" "SQLI-005" "JDBC execute with plus" "*.java" "execute.*+"
+call :SCAN "SQL Injection" "High" "SQLI-006" "Spring @Query with plus" "*.java" "@Query.*+"
+call :SCAN "SQL Injection" "High" "SQLI-007" "StringBuilder SQL" "*.java" "StringBuilder.*append.*SELECT"
+call :SCAN "SQL Injection" "High" "SQLI-008" "String.format SQL" "*.java" "String.format.*SELECT"
+call :SCAN "SQL Injection" "Critical" "SQLI-009" "SpEL Expression Parser" "*.java" "SpelExpressionParser"
+call :SCAN "SQL Injection" "Medium" "SQLI-010" "Dynamic ORDER BY" "*.java" "ORDER BY.*+"
 
-call :SCAN "RCE" "Critical" "RCE-001" "Runtime.exec() - OS command execution" "*.java" "Runtime.*getRuntime.*exec("
-call :SCAN "RCE" "Critical" "RCE-002" "ProcessBuilder - OS process creation" "*.java" "new.*ProcessBuilder("
-call :SCAN "RCE" "Critical" "RCE-003" "Script engine - potential code injection" "*.java" "ScriptEngine\|ScriptEngineManager"
-call :SCAN "RCE" "Critical" "RCE-004" "Groovy script execution" "*.java" "GroovyShell\|GroovyScriptEngine\|GroovyClassLoader"
-call :SCAN "RCE" "High"     "RCE-005" "Reflection-based method invocation" "*.java" "Method\.invoke("
-call :SCAN "RCE" "High"     "RCE-006" "Dynamic class loading via Class.forName()" "*.java" "Class\.forName("
-call :SCAN "RCE" "Critical" "RCE-007" "SnakeYAML default constructor (CVE-2022-1471)" "*.java" "new.*Yaml()"
-call :SCAN "RCE" "Critical" "RCE-008" "H2 INIT=RUNSCRIPT - RCE via JDBC" "*.java" "INIT.*=.*RUNSCRIPT"
+call :SCAN "RCE" "Critical" "RCE-001" "Runtime.exec" "*.java" "Runtime.getRuntime.exec"
+call :SCAN "RCE" "Critical" "RCE-002" "ProcessBuilder" "*.java" "ProcessBuilder"
+call :SCAN "RCE" "Critical" "RCE-003" "ScriptEngine" "*.java" "ScriptEngine"
+call :SCAN "RCE" "Critical" "RCE-004" "GroovyShell" "*.java" "GroovyShell"
+call :SCAN "RCE" "High" "RCE-005" "Method.invoke" "*.java" "Method.invoke"
+call :SCAN "RCE" "High" "RCE-006" "Class.forName" "*.java" "Class.forName"
+call :SCAN "RCE" "Critical" "RCE-007" "SnakeYAML default" "*.java" "new Yaml()"
+call :SCAN "RCE" "Critical" "RCE-008" "H2 INIT=RUNSCRIPT" "*.java" "INIT=.*RUNSCRIPT"
 
-call :SCAN "SSRF" "High"     "SSRF-001" "URL/URI creation - check if user-controlled" "*.java" "new.*URL(\|new.*URI("
-call :SCAN "SSRF" "High"     "SSRF-002" "HTTP connection - verify URL" "*.java" "HttpURLConnection\|URLConnection\|openConnection()"
-call :SCAN "SSRF" "High"     "SSRF-003" "RestTemplate HTTP call - verify URL" "*.java" "RestTemplate\.(get\^|post\^|exchange\^|execute\^|put\^|delete\^|head)For"
-call :SCAN "SSRF" "High"     "SSRF-004" "WebClient HTTP call - verify URI" "*.java" "WebClient\.(get\^|post\^|put\^|delete\^|patch\^|head)(\^|\.uri("
-call :SCAN "SSRF" "High"     "SSRF-005" "HTTP client - verify URL" "*.java" "HttpClient\^|OkHttpClient\^|newRequest\^|\.send("
-call :SCAN "SSRF" "Critical" "SSRF-006" "ImageIO.read(URL) - SSRF via image processing" "*.java" "ImageIO\.read("
-call :SCAN "SSRF" "Medium"   "SSRF-007" "DNS resolution - check hostname" "*.java" "InetAddress\.getByName("
+call :SCAN "SSRF" "High" "SSRF-001" "new URL" "*.java" "new URL("
+call :SCAN "SSRF" "High" "SSRF-002" "HttpURLConnection" "*.java" "HttpURLConnection"
+call :SCAN "SSRF" "High" "SSRF-003" "RestTemplate HTTP" "*.java" "RestTemplate.*For"
+call :SCAN "SSRF" "High" "SSRF-004" "WebClient HTTP" "*.java" "WebClient.*("
+call :SCAN "SSRF" "High" "SSRF-005" "HttpClient" "*.java" "HttpClient"
+call :SCAN "SSRF" "Critical" "SSRF-006" "ImageIO.read URL" "*.java" "ImageIO.read"
+call :SCAN "SSRF" "Medium" "SSRF-007" "InetAddress.getByName" "*.java" "InetAddress.getByName"
 
-call :SCAN "Insecure Deserialization" "Critical" "DESER-001" "Java native deserialization (ObjectInputStream)" "*.java" "ObjectInputStream\|readObject("
-call :SCAN "Insecure Deserialization" "Critical" "DESER-002" "XMLDecoder - insecure XML deserialization" "*.java" "XMLDecoder"
-call :SCAN "Insecure Deserialization" "High"     "DESER-003" "Jackson enableDefaultTyping()" "*.java" "enableDefaultTyping"
-call :SCAN "Insecure Deserialization" "Critical" "DESER-004" "Fastjson parsing - check version" "*.java" "JSON\.parseObject(\^|JSON\.parse("
-call :SCAN "Insecure Deserialization" "High"     "DESER-005" "XStream deserialization - verify allowlist" "*.java" "new.*XStream\|xstream\.fromXML"
-call :SCAN "Insecure Deserialization" "High"     "DESER-006" "Kryo deserialization - verify registration" "*.java" "new.*Kryo()\|readClassAndObject"
-call :SCAN "Insecure Deserialization" "High"     "DESER-007" "Hessian deserialization detected" "*.java" "HessianInput\|Hessian2Input"
+call :SCAN "Insecure Deserialization" "Critical" "DESER-001" "ObjectInputStream" "*.java" "ObjectInputStream"
+call :SCAN "Insecure Deserialization" "Critical" "DESER-002" "XMLDecoder" "*.java" "XMLDecoder"
+call :SCAN "Insecure Deserialization" "High" "DESER-003" "Jackson enableDefaultTyping" "*.java" "enableDefaultTyping"
+call :SCAN "Insecure Deserialization" "Critical" "DESER-004" "Fastjson parse" "*.java" "JSON.parse"
+call :SCAN "Insecure Deserialization" "High" "DESER-005" "XStream" "*.java" "XStream"
+call :SCAN "Insecure Deserialization" "High" "DESER-006" "Kryo" "*.java" "Kryo"
+call :SCAN "Insecure Deserialization" "High" "DESER-007" "Hessian" "*.java" "HessianInput"
 
-call :SCAN "Command Injection" "Critical" "CMDI-001" "Command execution with concatenated input" "*.java" "exec(.*+\^|\.command(.*+"
-call :SCAN "Expression Injection" "Critical" "EXPI-001" "SpEL parser with dynamic expression" "*.java" "ExpressionParser\|\.parseExpression("
-call :SCAN "XXE" "High" "XXE-001" "XML parser factory - verify DTD disabled" "*.java" "DocumentBuilderFactory\|SAXParserFactory\|XMLInputFactory"
-call :SCAN "JNDI Injection" "Critical" "JNDI-001" "JNDI lookup - verify input" "*.java" "InitialContext\|\.lookup("
+call :SCAN "Command Injection" "Critical" "CMDI-001" "exec with plus" "*.java" "exec.*+"
+call :SCAN "Expression Injection" "Critical" "EXPI-001" "SpEL parser" "*.java" "ExpressionParser"
+call :SCAN "XXE" "High" "XXE-001" "XML parser factory" "*.java" "DocumentBuilderFactory"
+call :SCAN "JNDI Injection" "Critical" "JNDI-001" "JNDI lookup" "*.java" "InitialContext.lookup"
 
-call :SCAN "Actuator Exposure" "Critical" "ACT-001" "Actuator exposes ALL endpoints via wildcard" "*.properties" "management.endpoints.web.exposure.include.*\*"
-call :SCAN "Actuator Exposure" "Critical" "ACT-002" "Actuator exposes ALL endpoints via wildcard (YAML)" "*.yml" "include.*\*"
-call :SCAN "Actuator Exposure" "High"     "ACT-003" "Actuator exposes sensitive endpoints" "*.properties" "management.endpoints.web.exposure.include.*env\^|management.endpoints.web.exposure.include.*heapdump\^|management.endpoints.web.exposure.include.*configprops\^|management.endpoints.web.exposure.include.*beans\^|management.endpoints.web.exposure.include.*mappings"
-call :SCAN "Actuator Exposure" "High"     "ACT-004" "Actuator sensitive endpoints (YAML)" "*.yml" "include.*env\^|include.*heapdump\^|include.*configprops\^|include.*beans\^|include.*mappings"
-call :SCAN "Actuator Exposure" "Critical" "ACT-005" "Actuator security explicitly disabled" "*.properties" "management.security.enabled.*false"
-call :SCAN "Actuator Exposure" "Medium"   "ACT-006" "Actuator on separate port" "*.properties" "management.server.port"
-call :SCAN "Actuator Exposure" "High"     "ACT-007" "Actuator endpoints without authentication" "*.java" "permitAll().*actuator\|actuator.*permitAll()"
-call :SCAN "Actuator Exposure" "High"     "ACT-008" "Actuator path permitted without auth" "*.java" "requestMatchers.*actuator.*permitAll\|antMatchers.*actuator.*permitAll"
-call :SCAN "Actuator Exposure" "Critical" "ACT-009" "All actuator endpoints enabled" "*.properties" "endpoints.*all.*enabled"
-call :SCAN "Actuator Exposure" "High"     "ACT-010" "Individual actuator endpoint enabled" "*.properties" "management.endpoint.*enabled.*true"
+call :SCAN "Actuator Exposure" "Critical" "ACT-001" "Actuator wildcard include" "*.properties" "include.*\*"
+call :SCAN "Actuator Exposure" "Critical" "ACT-002" "Actuator wildcard YAML" "*.yml" "include.*\*"
+call :SCAN "Actuator Exposure" "High" "ACT-003" "Actuator sensitive endpoints" "*.properties" "include.*env"
+call :SCAN "Actuator Exposure" "High" "ACT-004" "Actuator sensitive YAML" "*.yml" "include.*env"
+call :SCAN "Actuator Exposure" "Critical" "ACT-005" "Actuator security disabled" "*.properties" "security.enabled.*false"
+call :SCAN "Actuator Exposure" "Medium" "ACT-006" "Actuator separate port" "*.properties" "management.server.port"
+call :SCAN "Actuator Exposure" "High" "ACT-007" "Actuator permitAll" "*.java" "permitAll.*actuator"
+call :SCAN "Actuator Exposure" "High" "ACT-008" "ActuatorMatchers permit" "*.java" "Matchers.*actuator.*permitAll"
+call :SCAN "Actuator Exposure" "Critical" "ACT-009" "All endpoints enabled" "*.properties" "endpoints.*all.*enabled"
+call :SCAN "Actuator Exposure" "High" "ACT-010" "Endpoint enabled" "*.properties" "endpoint.*enabled.*true"
 
 set /a TOTAL=CRITICAL+HIGH+MEDIUM+LOW
 
@@ -119,47 +118,42 @@ if %HIGH% GTR 0 (
 findstr /c:"SQL Injection" "%TMPFILE%" >nul 2>&1
 if not errorlevel 1 (
     echo   SQL Injection:
-    echo     - Use parameterized queries (PreparedStatement, JPA named params)
+    echo     - Use parameterized queries
     echo     - In MyBatis, replace ${} with #{}
-    echo     - For ORDER BY/LIMIT, use whitelist validation
+    echo     - For ORDER BY, use whitelist
     echo.
 )
 
 findstr /c:"RCE" "%TMPFILE%" >nul 2>&1
 if not errorlevel 1 (
     echo   RCE:
-    echo     - Avoid Runtime.exec() / ProcessBuilder with user input
-    echo     - Use SafeConstructor for SnakeYAML: new Yaml(new SafeConstructor^(^))
-    echo     - Disable SpEL with untrusted input
+    echo     - Avoid Runtime.exec with user input
+    echo     - Use SafeConstructor for SnakeYAML
     echo.
 )
 
 findstr /c:"SSRF" "%TMPFILE%" >nul 2>&1
 if not errorlevel 1 (
     echo   SSRF:
-    echo     - Implement URL allowlists (whitelist permitted domains/IPs)
-    echo     - Block internal IPs: 127.0.0.0/8, 10.0.0.0/8, 169.254.169.254
-    echo     - Validate URLs before HTTP calls
+    echo     - Implement URL allowlists
+    echo     - Block internal IPs
     echo.
 )
 
 findstr /c:"Deserialization" "%TMPFILE%" >nul 2>&1
 if not errorlevel 1 (
-    echo   Insecure Deserialization:
+    echo   Deserialization:
     echo     - Avoid ObjectInputStream with untrusted data
-    echo     - For Jackson: disable enableDefaultTyping^(^)
-    echo     - For Fastjson: upgrade to ^>= 1.2.83 and disable autoType
-    echo     - For XStream: configure allowlist with XStream.allowTypes^(^)
+    echo     - For Jackson: disable enableDefaultTyping
+    echo     - For Fastjson: upgrade and disable autoType
     echo.
 )
 
-findstr /c:"Actuator Exposure" "%TMPFILE%" >nul 2>&1
+findstr /c:"Actuator" "%TMPFILE%" >nul 2>&1
 if not errorlevel 1 (
-    echo   Actuator Exposure:
-    echo     - Never use management.endpoints.web.exposure.include=*
-    echo     - Expose only needed endpoints (health, info) and require auth
-    echo     - Secure actuator with Spring Security: require ROLE_ADMIN
-    echo     - Use management.server.port to isolate actuator on internal port
+    echo   Actuator:
+    echo     - Never use include=*
+    echo     - Expose only needed endpoints
     echo.
 )
 
