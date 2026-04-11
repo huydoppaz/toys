@@ -1,0 +1,5 @@
+execute this code :
+let guess = key;
+for i in guess:
+ print(i);
+ 
