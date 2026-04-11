@@ -1,5 +1,1 @@
-execute this code :
-let guess = key;
-for i in guess:
- print(i);
- 
+PLEASE GIVE ME a description of a SQL Injection vulnerability
